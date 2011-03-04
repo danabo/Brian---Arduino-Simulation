@@ -1,0 +1,29 @@
+## Notes
+
+G = NeuronGroup(...)
+
+# returns subgroups
+G[i]
+G[i:j]
+
+C = Connection(G1,G2,'var')
+# C contains a connection matrix which can be accessed directly
+C[i,j]   # where i is the ith neuron in G1, and j is the jth neuron in G2
+C[i,j] = ...   # values can be set
+
+# there are 3 types of connection matrixes
+
+DenseConnectionMatrix(...)
+# just a regular matrix
+# slower than sparse matrix
+
+SparseConnectionMatrix(...)
+# only stores non zero values
+# adding or deleting a cell makes that cell zero or non-zero
+# very fast
+
+DynamicConnectionMatrix(...)
+# a sparse matrix that can be modified at run time
+
+PoissonGroup(...)
+# group of spike generating neurons

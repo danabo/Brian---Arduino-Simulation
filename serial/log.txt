@@ -1,0 +1,24 @@
+3/2/11
+
+HCO_chain_arduino.py
+	neeeds half_Center4.pde loaded into the Arduino
+	made images:
+		half_center_chain_250ms.png
+		half_center_chain_150ms.png
+		half_center_chain_100ms.png
+	parameters:
+		tau = .8*ms
+		tr = 3*mV
+		threshold = tr-.5*mV;
+		v0 = 0*mV
+		v1 = 2.8*mV
+		timespan = 250*ms
+		eqs = '''
+		dv/dt = (tr-v)/(0.2*k)/tau : volt
+		dk/dt = -10*k/(1*second) : volt/volt
+		'''
+
+modify HCO_chain_arduino.py to look like HCO_chain.py
+HCO class added to arduino.py
+HCO_chain_arduino2.py measures time it takes to go one step in the simulation
+floats are now sent as binary data instead of strings.  cut time in half

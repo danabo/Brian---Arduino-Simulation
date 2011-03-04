@@ -1,0 +1,5 @@
+
+swig -c++ -python half_center2.i
+g++ -O2 -fPIC -c half_center2.cpp
+g++ -O2 -fPIC -c half_center2_wrap.cxx -I/usr/include/python2.6
+g++ -shared half_center2.o half_center2_wrap.o -o _half_center2.so
