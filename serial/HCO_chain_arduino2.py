@@ -1,7 +1,7 @@
 ## use half_center5.pde
 
 from arduino import *
-ard = HCO(4, 512000)  # com5, baud 512000
+ard = HCO(4, 28800)  # com5, baud 512000
 
 from brian import *
 from time import sleep,clock
@@ -112,26 +112,33 @@ ard.set_threshold(float(threshold))
 
 P = PercentDisplay(timespan, default_clock.dt)
 communication_time = Timer()
-simulation_time = Timer()
+calculation_time = Timer()    # arduino
+step_time = Timer()
 
 @network_operation(when='before_groups')
 def update_arduino():
 	##ard.ToggleLight()
 	##print "junk:  "+ard.read(100)   # extra byte present now
-	communication_time.start()
+	step_time.start()
+	
 	for neuron in range(2):
 		for var in ('v','k'):
-			setattr(proxy[neuron],var, ard.get_value(neuron, var)*volt)
-	communication_time.stop()
+			communication_time.start()
+			value = ard.get_value(neuron, var)
+			communication_time.stop()
+			setattr(proxy[neuron],var, value*volt)
+	
 	# FIX!  for some reason theres an extra 'k' or '?' on the first tick
-	stuff = ard.read(100)  # see if theres extra junk  
+	stuff = ard.read(1)  # see if theres extra junk  
 	##if stuff: print stuff 
 	dt = ard.tick()
-	simulation_time.include(dt/1000000.0)  # convert to seconds
+	calculation_time.include(dt/1000000.0)  # convert to seconds
 	P.update()
 	#for neuron in range(2):
 	#	for var in ('v','k'):
 	#		setattr(proxy[neuron],var, get_value(ard, neuron, var))
+	
+	step_time.stop()
 	
 	
 	
@@ -167,7 +174,8 @@ run(timespan)
 print "simulation complete!"
 
 print "average communication time = "+str(communication_time.results())+" seconds"
-print "average simulation step time = "+str(simulation_time.results())+" seconds"
+print "average arduino calculation time = "+str(calculation_time.results())+" seconds"
+print "average simulation step time = "+str(step_time.results())+" seconds"
 
 times = MvIF.times / ms
 subplot(411)

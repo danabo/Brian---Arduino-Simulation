@@ -129,8 +129,9 @@ class HCO(Arduino):
 		
 	def tick(self):
 		##self.last_dtime = self.dtime
+		t = self.get_tick_time()
 		self.write('\xf0')
-		return self.get_tick_time()
+		return t
 		
 	
 	

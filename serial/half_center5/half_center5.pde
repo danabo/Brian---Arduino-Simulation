@@ -164,7 +164,7 @@ unsigned long dtime;   // change in time for the last simulation tick
 
 
 void setup() {
-  Serial.begin(512000);
+  Serial.begin(28800);
   pinMode(13, OUTPUT); 
  G.matrix[0][1] = Wi;
  G.matrix[1][0] = Wi;
