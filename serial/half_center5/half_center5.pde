@@ -5,6 +5,8 @@
  timer for speed watching
 */
 
+#define BAUD_RATE 28800
+
 double tr = .003;
 double tau = .0008;
 double v0 = .000; 
@@ -85,11 +87,17 @@ class NeuronGroup { public:
         neurons[i].tick(t);
         if(neurons[i].spiking) {
           for(int j=0; j<nsize; ++j) {
-            neurons[j].values[0] += matrix[i][j];   // V_j += W_ij
+            //neurons[j].values[0] += matrix[i][j];   // V_j += W_ij
+            spiking(j, 0, matrix[i][j]);   // V_j += W_ij
           }
         }
      } 
   }
+  
+  void spiking(int neuron, int var, int weight) {
+    neurons[neuron].values[var] += weight;
+  }
+  
   Neuron& getCurrent() {
     return neurons[current];
   }
@@ -164,7 +172,7 @@ unsigned long dtime;   // change in time for the last simulation tick
 
 
 void setup() {
-  Serial.begin(28800);
+  Serial.begin(BAUD_RATE);
   pinMode(13, OUTPUT); 
  G.matrix[0][1] = Wi;
  G.matrix[1][0] = Wi;
@@ -246,6 +254,28 @@ void loop() {
         // incriment value
         // read 4 byte float
         G.inc(var, get_float());
+      }
+      else if(b==0x30) {
+        // get spike status for all neurons
+        // write n = # of neurons (1 byte), k = number of bytes (1 byte), k bytes with each bit a 1 for a spiking neuron
+        Serial.print(G.nsize, BYTE);
+        Serial.write(G.nsize/8 + ((G.nsize%8==0)?0:1));
+        for(int i=0; i<G.nsize; i+=8) {  // loop through each byte that will be sent
+          byte bits = 0;
+          for(int n=i; n<(i+8) && n<G.nsize; ++n) {
+            if(G.neurons[n].spiking) {
+              bits+=128;
+            }
+            bits>>=1;
+          }
+          Serial.write(bits);
+        }
+      }
+      else if(b==0x31) {
+        // send spike
+        // read neuron number (1 byte)
+        b = next();
+        G.spiking(b, 0, Wi);
       }
       else if(b==0xe0) {
         // set constant

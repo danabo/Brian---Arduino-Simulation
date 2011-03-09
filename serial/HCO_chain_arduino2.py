@@ -52,7 +52,7 @@ tr = 3*mV
 threshold = tr-.5*mV;
 v0 = 0*mV
 v1 = 2.8*mV
-timespan = 30*ms
+timespan = 100*ms
 eqs = '''
 dv/dt = (tr-v)/(1*k)/tau : volt
 dk/dt = -10*k/(1*second) : volt/volt
@@ -115,6 +115,8 @@ communication_time = Timer()
 calculation_time = Timer()    # arduino
 step_time = Timer()
 
+arduino_spike_list = [[],[]]
+
 @network_operation(when='before_groups')
 def update_arduino():
 	##ard.ToggleLight()
@@ -127,9 +129,11 @@ def update_arduino():
 			value = ard.get_value(neuron, var)
 			communication_time.stop()
 			setattr(proxy[neuron],var, value*volt)
-	
+	spikes = ard.get_spikes()
+	arduino_spike_list[0].append(spikes[0])
+	arduino_spike_list[1].append(spikes[1])
 	# FIX!  for some reason theres an extra 'k' or '?' on the first tick
-	stuff = ard.read(1)  # see if theres extra junk  
+	##stuff = ard.read(1)  # see if theres extra junk  
 	##if stuff: print stuff 
 	dt = ard.tick()
 	calculation_time.include(dt/1000000.0)  # convert to seconds
@@ -147,6 +151,7 @@ def IF_spike(spikes):
 		for prxy in range(2):
 			dv = float(Cp[neuron,prxy])    # should be in volts
 			if dv!=0:
+				#ard.send_spike(prxy)
 				ard.inc_value(prxy, 'v', dv)
 
 				
@@ -171,6 +176,7 @@ for i in xrange(1000):   # 100ms
 print clock.get_duration()
 '''
 run(timespan)
+ard.Light(0)
 print "simulation complete!"
 
 print "average communication time = "+str(communication_time.results())+" seconds"
@@ -178,19 +184,27 @@ print "average arduino calculation time = "+str(calculation_time.results())+" se
 print "average simulation step time = "+str(step_time.results())+" seconds"
 
 times = MvIF.times / ms
-subplot(411)
+subplot(611)
 plot(times, MvIF[0] / mV)
 plot(times, MvIF[1] / mV)
-subplot(412)
+subplot(612)
 ##raster_plot(spIF, ymargin=.5)
 raster_plot(spIF1)
 raster_plot(spIF2)
-subplot(413)
+subplot(613)
 plot(times, MvP[0] / mV)
 plot(times, MvP[1] / mV)
-subplot(414)
+subplot(614)
 ##raster_plot(spP, ymargin=.5)
 raster_plot(spP1)
 raster_plot(spP2)
+subplot(615)
+sc = scatter(times, arduino_spike_list[0], 1)
+ax = sc.axes
+ax.set_xbound(0, timespan/ms)
+subplot(616)
+sc = scatter(times, arduino_spike_list[1], 1)
+ax = sc.axes
+ax.set_xbound(0, timespan/ms)
 
 show()

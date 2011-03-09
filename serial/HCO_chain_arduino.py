@@ -66,7 +66,8 @@ Cp[1,0]=Cpr[0,1]=Wi
 default_clock = get_default_clock()
 ## get_default_clock().dt = 1*ms
 
-ard = Arduino(3)  # com4
+##ard = Arduino(3)  # com4
+ard = Arduino(4)
 sleep(.5)
 print "init arduino"
 # init neurons

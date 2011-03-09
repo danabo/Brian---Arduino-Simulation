@@ -9,7 +9,7 @@ import sys
 from time import sleep
 
 
-ard = HCO(3)  # com4
+ard = HCO(4, 28800)  # com5
 sleep(2)
 print "init arduino"
 ard.Light(1)    # turn light on

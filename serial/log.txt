@@ -22,3 +22,17 @@ modify HCO_chain_arduino.py to look like HCO_chain.py
 HCO class added to arduino.py
 HCO_chain_arduino2.py measures time it takes to go one step in the simulation
 floats are now sent as binary data instead of strings.  cut time in half
+
+
+3/9/11
+
+HCO_chain_arduino2.py
+	STATUS:  not working - arduino voltages not spiking as they should.  Compare to HCO_chain_arduino.py using half_center4.pde
+	modified HCO_chain_arduino2.py to only send and recieve spikes, not access values directly
+	changed baud rate to 28800 which is the highest the Arduino seems to allow. (look into this)
+	records spikes from arduino and predicted spikes from the "proxy" neurons to compare the error between machines
+
+arduino.py modified
+	changing timeout to None causes problems
+	still using a loop to wait for bytes
+	read/write functions moved to Arduino class from HCO class

@@ -15,6 +15,43 @@ class Arduino(serial.Serial):
 	def ToggleLight(self):
 		self.lightstate = 1-self.lightstate
 		self.write(chr(self.lightstate))
+		
+	def read_loop(self, n_bytes=1):
+		s=""
+		for byte in xrange(n_bytes):
+			c=""
+			while c=="":
+				c=self.read(1)
+			s+=c
+		return s
+		
+	def read_wait(self, n_bytes=1):
+		return self.read_loop(n_bytes)
+		#self.timeout = None   # infinite timeout
+		#data = self.read(n_bytes)
+		#self.timeout = 0
+		#return data
+		
+	def read_num(self):
+		return eval(self.read_until('\x00'))
+		
+	def read_until(self, char='\x00'):
+		## self.timeout=None   # infinite timeout
+		s = ""
+		c = ""
+		while c!=char:
+			c=self.read(1)
+			s+=c
+		## self.timeout = 0
+		return s[:-1]   # remove the terminating byte
+		
+	def read_float(self):
+		data = self.read_wait(4)
+		return unpack('f',data)[0]
+		
+	def write_float(self, f):
+		data = pack('f',f)
+		self.write(data)
 			
 class HCO(Arduino):
 	def __init__(self, *args):
@@ -35,12 +72,7 @@ class HCO(Arduino):
 		self.write('\x10'+var)
 	def set_neuron(self,neuron_i):
 		self.write('\x11'+chr(neuron_i))
-	def read_float(self):
-		data = self.read_bytes(4)
-		return unpack('f',data)[0]
-	def write_float(self, f):
-		data = pack('f',f)
-		self.write(data)
+
 	# sends a floating point f to the arduino which converts it to a system float and then converts and sends the data back
 	def test_float(self, f):
 		self.write('\x03')    # test float mode
@@ -48,30 +80,30 @@ class HCO(Arduino):
 		ff = self.read_float()
 		print self.read_until('\n')
 		return ff
-	def read_num(self):
-		return eval(self.read_until('\x00'))
-	def read_until(self, char='\x00'):
-		s = ""
-		c = ""
-		while c!=char:
-			c=self.read(1)
-			s+=c
-		return s[:-1]   # remove the terminating byte
-	def read_bytes(self, n_bytes):
-		s = ""
-		c = ""
-		n=0
-		while n<n_bytes:
-			c=self.read(1)
-			if c!="":
-				s+=c
-				n+=1
-		return s
+
 	def get_value(self, neuron, var):
 		self.select(neuron, var)
 		self.write('\x21')
 		## return self.read_num()
 		return self.read_float()
+		
+	# returns a list of 0s and 1s
+	def get_spikes(self):
+		self.write('\x30')
+		n = ord(self.read_wait(1))   # number of neurons
+		# n must equal 2
+		assert(n==2)
+		nbytes = ord(self.read_wait(1))
+		bytes = self.read_wait(nbytes)
+		spikes = [0]*n
+		for i in range(n):
+			if ord(bytes[i/8])&(1<<(i%8)):
+				spikes[i] = 1
+		return spikes
+		
+	def send_spike(self, neuron):
+		self.write('\x31')
+		self.write(chr(neuron))
 
 	def set_value(self, neuron, var, value):
 		self.select(neuron, var)
@@ -95,6 +127,7 @@ class HCO(Arduino):
 	def set_const(self, cvar, value):
 		## self.write('\xe0'+chr(consts[cvar])+str(value)+'\x00')
 		self.write('\xe0')
+		self.write(chr(self.consts[cvar]))
 		self.write_float(value)
 	def set_threshold(self, value):
 		## self.write('\xe1'+str(value)+'\x00')
