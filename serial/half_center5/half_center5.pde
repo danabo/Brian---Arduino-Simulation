@@ -94,7 +94,7 @@ class NeuronGroup { public:
      } 
   }
   
-  void spiking(int neuron, int var, int weight) {
+  void spiking(int neuron, int var, double weight) {
     neurons[neuron].values[var] += weight;
   }
   

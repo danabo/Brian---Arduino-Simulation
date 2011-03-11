@@ -9,11 +9,18 @@ import sys
 from time import sleep
 
 
-ard = HCO(4, 28800)  # com5
+VERSION = 5
+COM = 5
+
+if VERSION<5:
+	ard = HCO(COM-1, 9600)
+else:
+	ard = HCO(COM-1, 28800)
 sleep(2)
 print "init arduino"
 ard.Light(1)    # turn light on
-ard.needs_version(5)
+if VERSION>=5:
+	ard.needs_version(VERSION)
 vars = [{'v':[], 'k':[], 'spike':[]},{'v':[], 'k':[], 'spike':[]}]
 timestep = .0001
 dt = .0001
@@ -34,10 +41,20 @@ def update_arduino():
 	global vars,percent,current_time
 	for neuron in range(2):
 		for var in ('v','k'):
-			vars[neuron][var].append(ard.get_value(neuron, var))
-		vars[neuron]['spike'].append(ord(send_receive(ard, '\x22')))
+			if VERSION<5:
+				vars[neuron][var].append(ard.get_value_v4(neuron, var))
+			else:
+				vars[neuron][var].append(ard.get_value(neuron, var))
+		vars[neuron]['spike'].append(ard.get_single_spike(neuron))
+	#s1,s2 = ard.get_spikes()
+	#vars[0]['spike'].append(s1)
+	#vars[1]['spike'].append(s2)
+		
 	for i in xrange(int(dt/timestep)):
-		ard.tick()
+		if VERSION<5:
+			ard.tick_v4()
+		else:
+			ard.tick()
 		current_time+=timestep
 	perc = int(current_time*100/timespan)
 	if perc-percent>=1:

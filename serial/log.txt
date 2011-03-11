@@ -36,3 +36,16 @@ arduino.py modified
 	changing timeout to None causes problems
 	still using a loop to wait for bytes
 	read/write functions moved to Arduino class from HCO class
+
+
+3/11/11
+
+arduino.py modified for backwards compatibility
+	get_value_v4() and tick_v4() will work with half_center4.pde
+
+HCO_chain_arduino2.py modified for backwards compatibility
+	it has been tested and works using half_center4.pde and using half_center5.pde 
+	half_center4.pde produces a half centre oscillator graph, but half_center5.pde does not
+
+half_center5.pde fixed
+

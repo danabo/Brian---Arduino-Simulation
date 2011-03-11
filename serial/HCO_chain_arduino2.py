@@ -2,6 +2,7 @@
 
 from arduino import *
 ard = HCO(4, 28800)  # com5, baud 512000
+##ard = HCO(4, 9600)  # com5, baud 512000
 
 from brian import *
 from time import sleep,clock

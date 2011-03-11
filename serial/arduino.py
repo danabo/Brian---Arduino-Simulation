@@ -61,11 +61,11 @@ class HCO(Arduino):
 		##self.time = clock()
 		##self.dtime = 0
 		##self.last_dtime = 0
-	def select(self, neuron, var):
-		if neuron!=self.neuron:
+	def select(self, neuron=-1, var=-1):
+		if neuron>=0 and neuron!=self.neuron:
 			self.set_neuron(neuron)
 			self.neuron=neuron
-		if var!=self.var:
+		if var!=-1 and var!=self.var:
 			self.set_var(var)
 			self.var=var
 	def set_var(self, var):
@@ -84,9 +84,25 @@ class HCO(Arduino):
 	def get_value(self, neuron, var):
 		self.select(neuron, var)
 		self.write('\x21')
+		#  uncomment to use older way of transfering floats
 		## return self.read_num()
 		return self.read_float()
 		
+	# depricated
+	# reads floats assuming they are sent as ascii strings
+	def get_value_v4(self, neuron, var):
+		self.select(neuron, var)
+		self.write('\x21')
+		return self.read_num()
+		
+	def get_single_spike(self, neuron):
+		self.select(neuron=neuron)
+		self.write('\x22')
+		n = ord(self.read_wait(1))
+		if n==0:
+			return 0
+		return 1
+	
 	# returns a list of 0s and 1s
 	def get_spikes(self):
 		self.write('\x30')
@@ -159,6 +175,11 @@ class HCO(Arduino):
 	def get_tick_time(self):
 		self.write('\xf5')
 		return self.read_num()
+		
+	# depricated
+	# older version - no time is recorded
+	def tick_v4(self):
+		self.write('\xf0')
 		
 	def tick(self):
 		##self.last_dtime = self.dtime
