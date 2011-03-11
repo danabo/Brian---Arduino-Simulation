@@ -110,11 +110,18 @@ class HCO(Arduino):
 		# n must equal 2
 		assert(n==2)
 		nbytes = ord(self.read_wait(1))
+		assert(nbytes==1)
 		bytes = self.read_wait(nbytes)
+		"""
 		spikes = [0]*n
 		for i in range(n):
 			if ord(bytes[i/8])&(1<<(i%8)):
 				spikes[i] = 1
+		"""
+		spikes = [0,0]
+		data = ord(bytes[0])
+		spikes[0] = 1&data
+		spikes[1] = 2&data
 		return spikes
 		
 	def send_spike(self, neuron):

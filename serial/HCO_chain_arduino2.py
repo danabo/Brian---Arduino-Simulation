@@ -59,18 +59,37 @@ dv/dt = (tr-v)/(1*k)/tau : volt
 dk/dt = -10*k/(1*second) : volt/volt
 '''
 
+nspikes = 0
+def reset_fun(G, spikes):
+	global nspikes
+	for neuron in spikes:
+		G[neuron].k+=1
+		G[neuron].v=v0
+		for prxy in range(2):
+			dv = float(Cp[neuron,prxy])    # should be in volts
+			if dv!=0:
+				nspikes+=1
+				ard.send_spike(prxy)
+				#ard.inc_value(prxy, 'v', dv)
 reset = '''
-k+=2
+k+=1
 v=v0
 '''
 
-IF = NeuronGroup(2, model=eqs, reset=reset, threshold=threshold)
+## IF = NeuronGroup(2, model=eqs, reset=reset, threshold=threshold)
+IF = NeuronGroup(2, model=eqs, reset=reset_fun, threshold=threshold)
 
 proxy_eqs = '''
 dv/dt = 0*volt/second : volt
 dk/dt = 0/second : volt/volt
 '''
-proxy = NeuronGroup(2, model=proxy_eqs, reset=reset, threshold=threshold)   # proxy neurons for the arduino
+
+	
+proxy_reset = '''
+k+=1
+v=v0
+'''
+proxy = NeuronGroup(2, model=proxy_eqs, reset=proxy_reset, threshold=threshold)   # proxy neurons for the arduino
 IF.v=[v1,v0]
 IF.k=[1,1]
 proxy.v = [v0,v0]
@@ -146,17 +165,22 @@ def update_arduino():
 	step_time.stop()
 	
 	
-	
+"""
+nspikes = 0
 def IF_spike(spikes):
+	global nspikes
 	for neuron in spikes:
 		for prxy in range(2):
 			dv = float(Cp[neuron,prxy])    # should be in volts
 			if dv!=0:
-				#ard.send_spike(prxy)
-				ard.inc_value(prxy, 'v', dv)
+				nspikes+=1
+				ard.send_spike(prxy)
+				#ard.inc_value(prxy, 'v', dv)
+"""
 
 				
-SpikeMonitor(IF, function = IF_spike)
+# IF_spike is not being called.  Dont know why not
+## SpikeMonitor(IF, function = IF_spike)
 spIF1 = SpikeMonitor(IF[0]) #, function = IF_spike)
 spIF2 = SpikeMonitor(IF[1]) #, function = IF_spike)
 ## spIF = SpikeMonitor(IF, function = IF_spike)
@@ -183,6 +207,7 @@ print "simulation complete!"
 print "average communication time = "+str(communication_time.results())+" seconds"
 print "average arduino calculation time = "+str(calculation_time.results())+" seconds"
 print "average simulation step time = "+str(step_time.results())+" seconds"
+print "# spikes sent = "+str(nspikes)
 
 times = MvIF.times / ms
 subplot(611)

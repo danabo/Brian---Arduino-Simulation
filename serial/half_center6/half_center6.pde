@@ -67,9 +67,12 @@ class Neuron { public:
 class NeuronGroup { public:
   Neuron * neurons;
   int nsize;
+  int data_record_size;
   int current; // the current neuron
   double** matrix;  // the connection matrix of neurons with in this group
-  NeuronGroup(int n) : nsize(0), current(0) {
+  double*** data_record;   // stores previous data for each tick
+  int ticks_recorded;    // number of recorded ticks since last data transfer
+  NeuronGroup(int n, int data_record_size) : nsize(0), current(0), data_record_size(data_record_size), ticks_recorded(0) {
       neurons = (Neuron*)malloc(n*sizeof(Neuron));
       matrix = (double**)malloc(n*sizeof(double*));
       for(int i=0; i<n; ++i) {
@@ -79,11 +82,33 @@ class NeuronGroup { public:
            matrix[i][j] = 0.0;  // initialize matrix with no connections 
         }
       }
+      data_record = (double***)malloc(data_record_size*sizeof(double**));
+      /*
+      3 dimensions
+      dimension 1 = time step
+      dimension 2 = neuron
+      dimension 3 = variable
+      */
+      for(int i=0; i<data_record_size; ++i) {
+        data_record[i] = (double**)malloc(n*sizeof(double*));  // neurons
+        for(int j=0; j<n; ++j) {
+          data_record[i][j] = (double*)malloc(neurons[j].nvars*sizeof(double));  // variables
+        }
+      }
       nsize=n;
   }
   
   void tick(double t) {
-     for(int i=0; i<nsize; ++i) {
+     // record old values
+    for(int i=0; i<nsize; ++i) {
+      for(int j=0; j<neurons[i].nvars; ++j) {
+        data_record[ticks_recorded][i][j] = neurons[i].values[j];
+      }
+    }
+    ticks_recorded++;
+    
+    // update values
+    for(int i=0; i<nsize; ++i) {
         neurons[i].tick(t);
         if(neurons[i].spiking) {
           for(int j=0; j<nsize; ++j) {
@@ -111,22 +136,6 @@ class NeuronGroup { public:
     return neurons[current].get(var);
   }
 };
-
-/*
-// reads float as a string
-float get_float() {
-  int c=-1;
-  char num[50]; // plenty of room
-  int i=0;
-  while(c!=0) {   // reads untill null char
-    if(Serial.available() > 0) {
-      c=Serial.read();
-      num[i++]=(char)c;
-    }
-  }
-  return atof(num);
-}
-*/
 
 // returns next serial byte 
 // waits untill there is one
@@ -162,10 +171,25 @@ double get_double() {
 }
 
 
+void send_bulk_data(NeuronGroup &G) {
+  for(int i=0; i<G.ticks_recorded; ++i) {
+    Serial.write(i);  // tick
+    for(int neuron=0; neuron<G.nsize; ++neuron) {
+      for(int var=0; var<G.neurons[neuron].nvars; ++var) {
+        // variable name, then 4 byte float
+        Serial.write(G.neurons[neuron].vars[var]);  // single character
+        send_float(G.neurons[neuron].values[var]);  // value
+      }
+    }
+  }
+  G.ticks_recorded = 0;   // reset buffer
+}
+
+
 int b=0;
-int digits = 8;  // number of decimal digits in a float 
 int var = 'v';
-NeuronGroup G = NeuronGroup(2);
+int data_buffer_size = 10;  // number of ticks to store
+NeuronGroup G = NeuronGroup(2,data_buffer_size);
 
 unsigned long time;
 unsigned long dtime;   // change in time for the last simulation tick
@@ -196,8 +220,8 @@ void loop() {
       }
       else if(b==0x02) {
         // ask for version number
-        // send string: "arduinoHCO5\0"  (version 5)
-        Serial.print("arduinoHCO5");
+        // send string: "arduinoHCO6\0"  (version 6)
+        Serial.print("arduinoHCO6");
         Serial.print('\0');
       }
       else if(b==0x03) {
@@ -207,11 +231,6 @@ void loop() {
         float f = get_float();
         send_float(f);
         Serial.println(f,10);
-      }
-      else if(b==0x05) {
-        // get # decimal digits in a double
-        // write 1 byte
-        Serial.print(digits, BYTE);
       }
       else if(b==0x10) {
         // set current variable
@@ -316,6 +335,10 @@ void loop() {
         time = micros();
         G.tick(timestep);
         dtime = micros()-time;
+        
+        if(G.ticks_recorded == data_buffer_size) {
+          send_bulk_data(G);
+        }
       }
       else if(b==0xf5) {
         // get run time for last simulation tick in microseconds

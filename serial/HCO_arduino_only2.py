@@ -45,10 +45,12 @@ def update_arduino():
 				vars[neuron][var].append(ard.get_value_v4(neuron, var))
 			else:
 				vars[neuron][var].append(ard.get_value(neuron, var))
-		vars[neuron]['spike'].append(ard.get_single_spike(neuron))
-	#s1,s2 = ard.get_spikes()
-	#vars[0]['spike'].append(s1)
-	#vars[1]['spike'].append(s2)
+		if VERSION<5:
+			vars[neuron]['spike'].append(ard.get_single_spike(neuron))
+	if VERSION>=5:
+		s1,s2 = ard.get_spikes()
+		vars[0]['spike'].append(s1)
+		vars[1]['spike'].append(s2)
 		
 	for i in xrange(int(dt/timestep)):
 		if VERSION<5:
@@ -90,6 +92,7 @@ run(timespan)
 
 print "simulation complete!"
 ard.Light(0)
+ard.close()     # no longer need arduino
 
 try:
 	subplot(411)

@@ -48,4 +48,6 @@ HCO_chain_arduino2.py modified for backwards compatibility
 	half_center4.pde produces a half centre oscillator graph, but half_center5.pde does not
 
 half_center5.pde fixed
+HCO_chain_arduino2.py fixed
 
+next:  try to increase speed.   Maybe have the arduino send data every n ticks.  The only data that needs to be sent very tick is spike data.
