@@ -58,6 +58,7 @@ class HCO(Arduino):
 		Arduino.__init__(self, *args)
 		self.neuron = -1
 		self.var = ''
+		self.data = [{'v':list(), 'k':list()},{'v':list(), 'k':list()}]    # 2 neurons each with variables 'v' and 'k'
 		##self.time = clock()
 		##self.dtime = 0
 		##self.last_dtime = 0
@@ -105,12 +106,14 @@ class HCO(Arduino):
 	
 	# returns a list of 0s and 1s
 	def get_spikes(self):
+		if self.inWaiting() > 0:
+			raise RuntimeException("Extra data in buffer!  '"+ard.read()+"'")
 		self.write('\x30')
 		n = ord(self.read_wait(1))   # number of neurons
 		# n must equal 2
-		assert(n==2)
+		assert n==2, str(n)+"!=2"
 		nbytes = ord(self.read_wait(1))
-		assert(nbytes==1)
+		assert nbytes==1, str(nbytes)+"!=1"
 		bytes = self.read_wait(nbytes)
 		"""
 		spikes = [0]*n
@@ -191,8 +194,45 @@ class HCO(Arduino):
 	def tick(self):
 		##self.last_dtime = self.dtime
 		t = self.get_tick_time()
+		if self.inWaiting() > 0:
+			raise RuntimeException("Extra data in buffer!  '"+self.read()+"'")
 		self.write('\xf0')
+		for neuron in range(2):
+			for var in ('v','k'):
+				self.data[neuron][var].append(0)   # add next timeframe to each
+		if self.inWaiting() > 0:
+			self.store_dump()
 		return t
+		
+	def read_dump(self):
+		# assume 2 neurons with the variables 'k' and 'v'
+		data = []
+		n_ticks = ord(self.read_wait(1))
+		for tick in range(n_ticks):
+			d = dict()
+			data.append(d)
+			for neuron in range(2):
+				vars = dict()
+				neuron_num = ord(self.read_wait(1))
+				d[neuron_num]=vars
+				for variable in range(2):
+					# read 1 char variable name and then 4 byte float
+					var = self.read_wait(1)
+					f = self.read_float()
+					vars[var]=f
+		return data
+		
+	def store_dump(self):
+		n_ticks = ord(self.read_wait(1))
+		#overwrite the last n_ticks in self.data
+		for tick in range(n_ticks):
+			for neuron in range(2):
+				neuron_num = ord(self.read_wait(1))
+				for variable in range(2):
+					# read 1 char variable name and then 4 byte float
+					var = self.read_wait(1)
+					f = self.read_float()
+					self.data[neuron_num][var][-n_ticks+tick] = f
 		
 	
 	

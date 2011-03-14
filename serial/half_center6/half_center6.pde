@@ -3,6 +3,7 @@
  constants can be changed
  version number accessable
  timer for speed watching
+ neuron data sent periodically
 */
 
 #define BAUD_RATE 28800
@@ -135,6 +136,21 @@ class NeuronGroup { public:
   double get(int var) {
     return neurons[current].get(var);
   }
+  
+  void send_bulk_data() {  
+    Serial.write(ticks_recorded);   // assumes there are less than 256 ticks
+    for(int i=0; i<ticks_recorded; ++i) {
+      for(int neuron=0; neuron<nsize; ++neuron) {
+        Serial.write(neuron);  // neuron #   // assumes there are less than 256 neurons
+        for(int var=0; var<neurons[neuron].nvars; ++var) {
+          // variable name, then 4 byte float
+          Serial.write(neurons[neuron].vars[var]);  // single character
+          send_float(neurons[neuron].values[var]);  // value
+        }
+      }
+    }
+    ticks_recorded = 0;   // reset buffer
+}
 };
 
 // returns next serial byte 
@@ -171,19 +187,7 @@ double get_double() {
 }
 
 
-void send_bulk_data(NeuronGroup &G) {
-  for(int i=0; i<G.ticks_recorded; ++i) {
-    Serial.write(i);  // tick
-    for(int neuron=0; neuron<G.nsize; ++neuron) {
-      for(int var=0; var<G.neurons[neuron].nvars; ++var) {
-        // variable name, then 4 byte float
-        Serial.write(G.neurons[neuron].vars[var]);  // single character
-        send_float(G.neurons[neuron].values[var]);  // value
-      }
-    }
-  }
-  G.ticks_recorded = 0;   // reset buffer
-}
+
 
 
 int b=0;
@@ -193,6 +197,8 @@ NeuronGroup G = NeuronGroup(2,data_buffer_size);
 
 unsigned long time;
 unsigned long dtime;   // change in time for the last simulation tick
+
+
 
 
 void setup() {
@@ -337,7 +343,7 @@ void loop() {
         dtime = micros()-time;
         
         if(G.ticks_recorded == data_buffer_size) {
-          send_bulk_data(G);
+          G.send_bulk_data();
         }
       }
       else if(b==0xf5) {
